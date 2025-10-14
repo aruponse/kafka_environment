@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  zookeeper:
+    container_name: kafka-zookeeper
+    image: confluentinc/cp-zookeeper:7.4.0  # Official Confluent Zookeeper image
+    env_file:
+      - .env.zookeeper  # Environment variables for Zookeeper are defined in .env.zookeeper
+    ports:
+      - "2181:2181"  # Expose port 2181 for Zookeeper
+    volumes:
+      - ./volumes/zookeeper-data:/var/lib/zookeeper/data  # Persist Zookeeper data in a local folder
+      - ./volumes/zookeeper-logs:/var/lib/zookeeper/log   # Persist Zookeeper logs in a local folder
+    networks:
+      - kafka-net
+
+  kafka:
+    container_name: kafka-broker
+    image: confluentinc/cp-kafka:7.4.0  # Official Confluent Kafka image
+    depends_on:
+      - zookeeper  # This service depends on the Zookeeper service
+    env_file:
+      - .env.kafka  # Environment variables for Kafka are defined in .env.kafka
+    ports:
+      - "9092:9092"  # Expose port 9092 for Kafka (for external access)
+      - "29092:29092"  # Expose port 29092 for Kafka (for internal Docker network)
+    volumes:
+      - ./volumes/kafka-data:/var/lib/kafka/data  # Persist Kafka data in a local folder
+      - ./volumes/kafka-logs:/opt/kafka/logs      # Persist Kafka logs in a local folder
+    networks:
+      - kafka-net
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    ports:
+      - "8080:8080" # El puerto donde estará la interfaz
+    restart: always
+    environment:
+      - KAFKA_CLUSTERS_0_NAME=local-kafka # Nombre que verás en la UI
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:29092
+    networks:
+      - kafka-net
+    depends_on:
+      - kafka 
+
+networks:
+  kafka-net:
+    driver: bridge
+    name: kafka-net
+
+volumes:
+  kafka-data:        # Volume for Kafka data
+  kafka-logs:        # Volume for Kafka logs
+  zookeeper-data:    # Volume for Zookeeper data
+  zookeeper-logs:    # Volume for Zookeeper logs
