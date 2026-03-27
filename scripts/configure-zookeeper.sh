@@ -28,8 +28,10 @@ else
     echo -e "${GREEN}Archivo .env.zookeeper ya existe${NC}"
 fi
 
-# Crear directorio de datos si no existe
-mkdir -p volumes/zookeeper-data
-echo -e "${GREEN}Directorio de datos creado${NC}"
+# Crear directorios de datos y logs si no existen (Docker/Volumes/kafka)
+DOCKER_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+KAFKA_VOLUME_ROOT="${DOCKER_ROOT}/Volumes/kafka"
+mkdir -p "${KAFKA_VOLUME_ROOT}/zookeeper-data" "${KAFKA_VOLUME_ROOT}/zookeeper-logs"
+echo -e "${GREEN}Directorios de Zookeeper creados en ${KAFKA_VOLUME_ROOT}${NC}"
 
 echo -e "${GREEN}Configuración de Zookeeper completada${NC}"

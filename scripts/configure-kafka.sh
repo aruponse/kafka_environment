@@ -35,8 +35,10 @@ else
     echo -e "${GREEN}Archivo .env.kafka ya existe${NC}"
 fi
 
-# Crear directorios de datos y logs si no existen
-mkdir -p volumes/kafka-data volumes/kafka-logs
-echo -e "${GREEN}Directorios de datos y logs creados${NC}"
+# Crear directorios de datos y logs si no existen (Docker/Volumes/kafka)
+DOCKER_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+KAFKA_VOLUME_ROOT="${DOCKER_ROOT}/Volumes/kafka"
+mkdir -p "${KAFKA_VOLUME_ROOT}/kafka-data" "${KAFKA_VOLUME_ROOT}/kafka-logs"
+echo -e "${GREEN}Directorios de datos y logs creados en ${KAFKA_VOLUME_ROOT}${NC}"
 
 echo -e "${GREEN}Configuración de Kafka completada${NC}"

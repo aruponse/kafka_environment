@@ -1,53 +1,87 @@
+version: '3.5'
+
 services:
   zookeeper:
     container_name: kafka-zookeeper
-    image: confluentinc/cp-zookeeper:7.4.0  # Official Confluent Zookeeper image
+    image: confluentinc/cp-zookeeper:7.4.0
     env_file:
-      - .env.zookeeper  # Environment variables for Zookeeper are defined in .env.zookeeper
+      - .env.zookeeper
+    environment:
+      KAFKA_HEAP_OPTS: -Xmx128m -Xms128m
     ports:
-      - "2181:2181"  # Expose port 2181 for Zookeeper
+      - '0.0.0.0:2181:2181'
     volumes:
-      - ./volumes/zookeeper-data:/var/lib/zookeeper/data  # Persist Zookeeper data in a local folder
-      - ./volumes/zookeeper-logs:/var/lib/zookeeper/log   # Persist Zookeeper logs in a local folder
+      - ../Volumes/kafka/zookeeper-data:/var/lib/zookeeper/data
+      - ../Volumes/kafka/zookeeper-logs:/var/lib/zookeeper/log
     networks:
       - kafka-net
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.2'
+          memory: 256M
+        reservations:
+          memory: 128M
+    healthcheck:
+      test: ['CMD', 'nc', '-z', 'localhost', '2181']
+      interval: 300s
+      timeout: 3s
+      retries: 3
+      start_period: 30s
+      start_interval: 5s
 
   kafka:
     container_name: kafka-broker
-    image: confluentinc/cp-kafka:7.4.0  # Official Confluent Kafka image
+    image: confluentinc/cp-kafka:7.4.0
     depends_on:
-      - zookeeper  # This service depends on the Zookeeper service
+      zookeeper:
+        condition: service_healthy
     env_file:
-      - .env.kafka  # Environment variables for Kafka are defined in .env.kafka
+      - .env.kafka
+    environment:
+      KAFKA_HEAP_OPTS: -Xmx512m -Xms512m
     ports:
-      - "9092:9092"  # Expose port 9092 for Kafka (for external access)
-      - "29092:29092"  # Expose port 29092 for Kafka (for internal Docker network)
+      - '0.0.0.0:9092:9092'
+      - '0.0.0.0:29092:29092'
     volumes:
-      - ./volumes/kafka-data:/var/lib/kafka/data  # Persist Kafka data in a local folder
-      - ./volumes/kafka-logs:/opt/kafka/logs      # Persist Kafka logs in a local folder
+      - ../Volumes/kafka/kafka-data:/var/lib/kafka/data
+      - ../Volumes/kafka/kafka-logs:/opt/kafka/logs
     networks:
       - kafka-net
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 768M
+        reservations:
+          memory: 512M
+
   kafka-ui:
-    image: provectuslabs/kafka-ui:latest
     container_name: kafka-ui
+    image: provectuslabs/kafka-ui:latest
+    depends_on:
+      kafka:
+        condition: service_started
     ports:
-      - "8080:8080" # El puerto donde estará la interfaz
+      - '0.0.0.0:8080:8080'
     restart: always
     environment:
-      - KAFKA_CLUSTERS_0_NAME=local-kafka # Nombre que verás en la UI
-      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:29092
+      JAVA_OPTS: -Xms64m -Xmx192m
+      KAFKA_CLUSTERS_0_NAME: local-kafka
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
     networks:
       - kafka-net
-    depends_on:
-      - kafka 
+    deploy:
+      resources:
+        limits:
+          cpus: '0.1'
+          memory: 256M
+        reservations:
+          memory: 128M
 
 networks:
   kafka-net:
     driver: bridge
     name: kafka-net
-
-volumes:
-  kafka-data:        # Volume for Kafka data
-  kafka-logs:        # Volume for Kafka logs
-  zookeeper-data:    # Volume for Zookeeper data
-  zookeeper-logs:    # Volume for Zookeeper logs
